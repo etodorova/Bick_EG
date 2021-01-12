@@ -1,0 +1,208 @@
+<html>
+	<head>
+		<script src="jquery-3.5.1.js"></script>
+	</head>
+	<body>
+		<h2>Bricks</h2>
+		<div>
+			<form>
+				<div>
+					<label for='n_dimensions'>Dimensions </label>
+					<input type ='text' id = 'n_dimensions'>
+				</div>			
+				<div>
+					<label for='layer_1'>Layer 1</label>
+					<textarea rows = '4' cols = '10' id='layer_1'></textarea>
+				</div>
+			</form>
+				<button id='b_run'> Run </button>
+
+			<div>Layer 1</div>
+			<div id='layer_1_res'> </div>
+			<div>Layer 2</div>
+			<div id='layer_2_res'> </div>
+
+
+		</div>
+	</body>
+</html>
+<script>
+	// prepares string to be shown in HTML from input array
+	function drawRow(layer_arr = []){  
+		
+		var layer_1_wall = '|';	
+		var brick_separator = ' ';
+		var brick_descr = [];
+		
+		for (var i = 0; i < layer_arr.length; i++) {
+			for (var j = 0; j < layer_arr[i].length; j++) {
+
+				var current_half = layer_arr[i][j];
+				if(j == layer_arr[i].length-1){ // add | after the last element of the row
+					layer_1_wall =layer_1_wall+current_half+'|';
+				}else{
+					if(current_half != layer_arr[i][j+1]){ // check if brick is horizontal or vertical; if = -> horizontal / if != -> vertical
+						brick_separator = "|";
+					}else{
+
+					}
+					layer_1_wall=layer_1_wall+current_half+brick_separator;
+				}
+				brick_separator = ' ';
+			}
+			layer_1_wall=layer_1_wall+"<br>";
+			if(i != layer_arr.length-1){
+				layer_1_wall=layer_1_wall+'|';
+			}
+		}
+		return layer_1_wall;
+	}
+
+	// validates dimensions field
+	function validateDimensions(horizontal,vertical){
+		var success = true;
+		if(horizontal == undefined || vertical == undefined){
+			success = false;
+		}else if(horizontal%2!=0 || vertical%2!=0){
+			success = false;
+		}else if(horizontal>100 || vertical>100){
+			success = false;
+		}
+
+		return success;
+	}
+
+	// validates layer 1 input according to dimensions input
+	function validateInput(x,y,arr){
+		var success = true;
+		if(arr.length == 0 || arr.length != x){
+			success = false;
+		}else{
+			for(var i=0; i<arr.length; i++){
+				if(arr[i].length != y){
+					success = false;
+				}
+			}
+		}
+
+		return success;
+	}
+
+	// clones layer 1 array to layer 2 array and fills it with '0'
+	function initArray(arr){
+		var result = [];
+
+		for (var i = 0; i < arr.length; i++){
+		    result[i] = arr[i].slice();
+		}
+
+		for(var i=0;i<result.length;i++){
+			for(var j =0; j<result[i].length;j++){
+				result[i][j] = 0;
+			}
+		}
+
+		return result;
+	}
+
+	// calculates Layer 2
+	function createLayer(arr){		
+		
+		
+		var result_array = initArray(arr);
+		var current_row = [];
+		var c_val; //current element of layer 1 row
+		var p_val; // previous element of layer 1 row
+		var n_val; // previous element of layer 1 row
+		var res_value = 0; //number values for layer 2 bricks
+
+		for(var i=0;i<arr.length;i++){
+			current_row = arr[i];
+			for(var j=0; j<arr[i].length;j++){
+				c_val = arr[i][j];
+				n_val = arr[i][j+1];
+				p_val = arr[i][j-1];
+
+				if(c_val == n_val){ // first half of horizontal brick
+					if(result_array[i][j] == 0){ // there is no brick on this half already
+						res_value++;
+						result_array[i][j] = res_value;   // insert vertical brick
+						result_array[i+1][j] = res_value; // insert vertical brick
+					}
+				}else if(c_val !== n_val && c_val == p_val){  // second half of horizontal brick
+					if(result_array[i][j] == 0){ // check if vertical brick from lower row is already situated over
+						res_value++; 
+						if(j == current_row.length-1){ // brick is last and we put vertical on top of it
+							if(i<arr.length-1){
+								result_array[i][j] = res_value;  
+								result_array[i+1][j] = res_value;
+							}
+						}else{
+							result_array[i][j] = res_value;   // insert horizontal brick
+							result_array[i][j+1] = res_value;
+						}
+					}
+				}else if(c_val != n_val && c_val != p_val){ // brick is vertical
+					if(result_array[i][j] ==0  && j != current_row.length-1){ //no brick on it and not last
+						res_value ++;
+						result_array[i][j] = res_value;   // insert vertical brick
+						result_array[i][j+1] = res_value;
+					}
+				}
+			}
+		}
+
+		return result_array;
+	}
+
+	$("#b_run").on('click',function(){
+		var dimensions = $("#n_dimensions").val();
+		var dimensions_arr = dimensions.split(' ');
+		var layer_2_to_draw = '';
+		var layer_2_array = [];
+		var x_dim = dimensions_arr['0'];
+		var y_dim = dimensions_arr['1'];
+		var dimensions_true = validateDimensions(x_dim,y_dim);
+		var input_true = false;	
+
+
+		if(dimensions_true){		
+			
+
+			var layer_1 = $('#layer_1').val();
+			var layer_1_arr = layer_1.split('\n');
+			var layer_1_to_draw = '';
+			var layer_1_prep = [];
+			
+			// ***************** print layer 1 and determine bricks' positions for second layer ******************
+			for (var i = 0; i < layer_1_arr.length; i++) {
+				layer_1_prep[i] = layer_1_arr[i].trim().split(' '); // remove space from beginning and ending
+			}			
+			
+
+			input_true = validateInput(x_dim,y_dim,layer_1_prep); // TODO 2 2 not valid
+
+			if(input_true){		
+				layer_1_to_draw = drawRow(layer_1_prep);
+				$('#layer_1_res').html(layer_1_to_draw);
+
+				layer_2_array = createLayer(layer_1_prep);
+				layer_2_to_draw = drawRow(layer_2_array);
+				$('#layer_2_res').html(layer_2_to_draw);
+
+				console.log(layer_1_to_draw);
+				console.log('************************************************');
+				console.log(layer_2_to_draw);
+				
+
+				// ****************************************************************************************************
+			}else{
+				alert('Layer 1 must not be empty! Layer 1 must have the same dimensions as filled in Dimensions field!');
+			}
+		}else{
+			alert('Dimensions field must not be empty! Dimensions must be even numbers not exceeding 100!')
+		}
+
+	});
+	
+</script>
